@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#050302" />
+  <title>Aurel — Héritage</title>
+  <meta name="description" content="Aurel Héritage, a steel dress watch taken apart in warm light. A scroll-driven concept study." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;1,6..96,400;1,6..96,500&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="loading">
+  <header class="top">
+    <a class="brand" href="#top" data-go="0">Aurel</a>
+    <span class="model">Héritage <i>concept study</i></span>
+  </header>
+
+  <canvas id="scene" aria-label="Aurel Héritage steel dress watch coming apart"></canvas>
+
+  <section class="ov ov-hero" data-from="-0.1" data-to="0.13" aria-label="Introduction">
+    <h1>Héritage<span>.</span></h1>
+    <p>A steel dress watch, taken apart in warm light.</p>
+    <p class="cue">Scroll slowly</p>
+  </section>
+
+  <section class="ov ov-side" data-from="0.15" data-to="0.33" aria-label="Disassembly">
+    <h2>Crystal first.<br /><em>Then the dial.</em></h2>
+    <p>Each piece lifts away in the order it was set, from sapphire to case.</p>
+  </section>
+
+  <section class="ov ov-side" data-from="0.36" data-to="0.66" aria-label="Exploded view">
+    <h2>Every part.<br /><em>One axis.</em></h2>
+    <p>Bezel, dial, hands, bridges, wheels and rotor, stacked above the case they live in.</p>
+  </section>
+
+  <section class="ov ov-side" data-from="0.69" data-to="0.88" aria-label="Reassembly">
+    <h2>Back together,<br /><em>by hand.</em></h2>
+    <p>The same parts return in reverse. The crown sets it running.</p>
+  </section>
+
+  <section class="ov ov-close" data-from="0.92" data-to="1.1" aria-label="Closing">
+    <h2><em>Aurel</em> Héritage</h2>
+    <a href="#top" data-go="0">Back to the beginning</a>
+    <p class="credit">College practice project, not a real product. Watch film supplied by the author for study use.</p>
+  </section>
+
+  <div class="progress" aria-hidden="true"><i id="bar"></i></div>
+
+  <div class="loader" id="loader" role="status" aria-live="polite">
+    <p id="load-text">Loading the film <span id="load-pct">0</span>%</p>
+      </div>
+
+  <main class="track" id="top" aria-hidden="true"></main>
+
+  <noscript><p class="nojs">Aurel Héritage needs JavaScript to play the watch film.</p></noscript>
+  <script type="module" src="main.js"></script>
+</body>
+</html>

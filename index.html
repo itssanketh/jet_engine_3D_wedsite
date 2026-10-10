@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R-4360 Wasp Major</title>
+<meta name="description" content="Interactive engineering exhibit of the Pratt & Whitney R-4360 Wasp Major 28-cylinder, four-row radial engine.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<style>
+:root {
+  --plate: #e2e3e1; --plate-dot: #c7c9ca; --sheet: rgba(245, 245, 243, 0.94); --sheet-solid: #f5f5f3;
+  --ink: #1b1d20; --ink-2: #4d5258; --ink-3: #62676d; --hair: #c3c6c9; --hair-2: #d6d8da;
+  --red: #c8292f; --blue: #1f5fbf; --orange: #e5731b; --charcoal: #3a3d42; --gray: #a7aaae;
+  --sans: "IBM Plex Sans Condensed", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --colL: 292px; --colR: 332px; --dockH: 84px;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background-color: var(--plate);
+  background-image: radial-gradient(circle, var(--plate-dot) 0.9px, transparent 1.2px);
+  background-size: 24px 24px; background-position: 12px 12px;
+  color: var(--ink); font: 400 13px/1.4 var(--sans); overflow: hidden;
+  -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums;
+}
+::selection { background: var(--red); color: #fff; }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+button, input { font: inherit; color: inherit; }
+
+/* plate frame with registration ticks */
+.frame { position: fixed; inset: 7px; border: 1px solid var(--hair); pointer-events: none; z-index: 0; }
+.frame i { position: absolute; width: 14px; height: 14px; border-color: var(--ink-3); border-style: solid; }
+.frame i:nth-child(1) { left: -1px; top: -1px; border-width: 1px 0 0 1px; }
+.frame i:nth-child(2) { right: -1px; top: -1px; border-width: 1px 1px 0 0; }
+.frame i:nth-child(3) { left: -1px; bottom: -1px; border-width: 0 0 1px 1px; }
+.frame i:nth-child(4) { right: -1px; bottom: -1px; border-width: 0 1px 1px 0; }
+
+#stage { position: fixed; inset: 0; z-index: 1; }
+#stage canvas { display: block; width: 100%; height: 100%; outline: none; touch-action: none; }
+#labels { position: fixed; inset: 0; pointer-events: none; z-index: 2; overflow: hidden; }
+#labels svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.lbl { position: absolute; left: 0; top: 0; white-space: nowrap; line-height: 1.15; padding: 3px 6px 4px; background: rgba(240, 240, 238, 0.9); border: 1px solid var(--hair-2); border-radius: 2px; }
+#labels { transition: opacity .25s; }
+.lbl b { display: block; font: 600 12.5px/1.2 var(--sans); letter-spacing: .01em; color: var(--ink);
+  text-shadow: 0 0 3px var(--plate), 0 0 3px var(--plate), 0 0 6px var(--plate); }
+.lbl span { display: block; font: 400 9.5px/1.3 var(--mono); color: var(--ink-2); letter-spacing: .02em;
+  text-shadow: 0 0 3px var(--plate), 0 0 3px var(--plate); }
+.lbl.r { text-align: left; } .lbl.l { text-align: right; }
+
+/* columns */
+.col { position: fixed; top: 16px; bottom: calc(var(--dockH) + 28px); z-index: 3; display: flex; flex-direction: column;
+  gap: 10px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--hair) transparent; padding-right: 2px; }
+.col.left { left: 18px; width: var(--colL); }
+.col.right { right: 18px; width: var(--colR); }
+body.no-charts .col .panel { display: none; }
+body.no-charts .col.right { display: none; }
+
+.panel { background: var(--sheet); border: 1px solid var(--hair); border-radius: 3px; padding: 10px 12px 11px; flex: none; }
+.ph { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 0 0 6px; }
+.ph h2 { margin: 0; font: 600 11px/1.2 var(--sans); letter-spacing: .09em; text-transform: uppercase; }
+.ph .meta { font: 400 10.5px var(--mono); color: var(--ink-3); }
+.note { margin: 6px 0 0; font: 400 10.5px/1.35 var(--mono); color: var(--ink-3); }
+.note em { font-style: normal; color: var(--red); }
+canvas.chart { display: block; width: 100%; }
+
+/* title block */
+.title { padding: 2px 2px 4px; flex: none; }
+.title h1 { margin: 0; font: 600 28px/1 var(--sans); letter-spacing: -0.015em; }
+.title h1::before { content: ""; display: block; width: 28px; height: 3px; background: var(--red); margin-bottom: 10px; }
+.title .spec { margin: 6px 0 0; font: 400 10px/1.5 var(--mono); color: var(--ink-2); }
+.rpm { display: flex; align-items: baseline; gap: 8px; margin-top: 10px; }
+.rpm output { font: 500 44px/0.95 var(--mono); color: var(--red); letter-spacing: -0.03em; }
+.rpm small { font: 500 11px var(--mono); color: var(--ink-2); letter-spacing: .06em; }
+.rpmbar { height: 2px; background: var(--hair); margin-top: 8px; position: relative; }
+.rpmbar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--red); }
+.cycle { margin: 7px 0 0; font: 400 11px var(--mono); color: var(--ink-2); }
+
+/* legend */
+.legend { position: fixed; top: 18px; left: 50%; transform: translateX(-50%); z-index: 3; display: flex; gap: 18px;
+  font: 500 11px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); }
+.legend span { display: flex; align-items: center; gap: 7px; }
+.legend i { width: 18px; height: 3px; display: block; }
+
+/* tracked cylinder */
+.cylname { display: flex; align-items: baseline; gap: 10px; }
+.cylname strong { font: 600 26px/1 var(--sans); }
+.cylname em { font: 600 15px var(--sans); font-style: normal; text-transform: capitalize; }
+.strokebar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin: 9px 0 4px; }
+.strokebar div { height: 5px; background: var(--hair-2); position: relative; overflow: hidden; }
+.strokebar div i { position: absolute; inset: 0 auto 0 0; width: 0; }
+.strokelbl { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; font: 500 9.5px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.strokelbl span.on { color: var(--ink); }
+.readouts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 9px; }
+.readouts div { border-top: 1px solid var(--hair); padding-top: 4px; }
+.readouts b { display: block; font: 500 14px var(--mono); }
+.readouts span { font: 400 9.5px var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.readouts .illus b { color: var(--red); }
+.row-btns { display: flex; gap: 6px; margin-top: 9px; }
+
+/* speed rows */
+.speeds { display: grid; gap: 1px; }
+.speeds div { display: grid; grid-template-columns: 1fr 26px 62px 82px; align-items: center; gap: 8px; }
+.speeds span { font: 500 10.5px var(--sans); letter-spacing: .07em; text-transform: uppercase; color: var(--ink-2); }
+.speeds b { font: 500 12px var(--mono); }
+.speeds output { font: 400 11.5px var(--mono); color: var(--ink-2); text-align: right; }
+.speeds canvas { width: 26px; height: 26px; }
+
+/* controls */
+.btn { appearance: none; border: 1px solid #b6b9bc; background: var(--sheet-solid); border-radius: 2px; height: 28px; padding: 0 10px;
+  font: 500 11px var(--sans); letter-spacing: .07em; text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  transition: background .15s, border-color .15s, color .15s; }
+.btn:hover { border-color: var(--ink-3); }
+.btn[aria-pressed="true"], .seg .btn.on { background: var(--ink); color: var(--sheet-solid); border-color: var(--ink); }
+.btn.primary { background: var(--red); border-color: var(--red); color: #fff; min-width: 84px; justify-content: center; }
+.btn.primary:hover { background: #a92227; }
+.btn svg { width: 12px; height: 12px; }
+.seg { display: inline-flex; }
+.seg .btn { border-radius: 0; margin-left: -1px; }
+.seg .btn:first-child { border-radius: 2px 0 0 2px; margin-left: 0; }
+.seg .btn:last-child { border-radius: 0 2px 2px 0; }
+.tog .btn::before { content: ""; width: 6px; height: 6px; border: 1px solid currentColor; display: block; }
+.tog .btn[aria-pressed="true"] { background: var(--sheet-solid); color: var(--ink); border-color: var(--ink); }
+.tog .btn[aria-pressed="true"]::before { background: var(--red); border-color: var(--red); }
+
+.dock { position: fixed; left: 18px; right: 18px; bottom: 16px; height: var(--dockH); z-index: 4; background: var(--sheet); border: 1px solid var(--hair);
+  border-radius: 3px; padding: 8px 14px; display: grid; grid-template-columns: auto 1fr; grid-template-rows: 1fr 1fr; column-gap: 26px; row-gap: 6px; align-items: center; }
+.transport { display: flex; gap: 6px; }
+.sliders { display: grid; grid-template-columns: 1.1fr auto 1.4fr; gap: 26px; align-items: center; }
+.field { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
+.field label { font: 500 10.5px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); white-space: nowrap; }
+.field output { font: 500 12px var(--mono); min-width: 74px; text-align: right; }
+.modes { grid-column: 1 / -1; display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
+.modes .grp { display: flex; align-items: center; gap: 9px; }
+.modes .grp > span { font: 500 10.5px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.hint { margin-left: auto; font: 400 10.5px var(--mono); color: var(--ink-3); }
+
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 18px; background: transparent; cursor: pointer; --p: 50%; }
+input[type=range]::-webkit-slider-runnable-track { height: 2px; background: linear-gradient(90deg, var(--red) var(--p), #b9bcbf var(--p)); }
+input[type=range]::-moz-range-track { height: 2px; background: linear-gradient(90deg, var(--red) var(--p), #b9bcbf var(--p)); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 14px; margin-top: -6px; background: var(--red); border: 2px solid var(--sheet-solid); border-radius: 1px; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+input[type=range]::-moz-range-thumb { width: 10px; height: 12px; background: var(--red); border: 2px solid var(--sheet-solid); border-radius: 1px; }
+
+.strip { position: fixed; left: calc(var(--colL) + 34px); right: calc(var(--colR) + 34px); bottom: calc(var(--dockH) + 28px); z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+body.no-charts .strip { left: 34px; right: 34px; }
+.strip .cap { font: 500 10px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.chips { display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; }
+.chip { appearance: none; width: 24px; height: 21px; border: 1px solid #b6b9bc; background: var(--sheet-solid); border-radius: 2px; padding: 0;
+  font: 500 9.5px var(--mono); cursor: pointer; transition: background .12s, color .12s; }
+.chip.fire { background: var(--orange); border-color: var(--orange); color: #fff; }
+.chip.sel { box-shadow: 0 0 0 2px var(--plate), 0 0 0 3px var(--red); }
+.chip:hover { border-color: var(--ink); }
+.toast { position: fixed; left: 50%; top: 46px; transform: translateX(-50%); z-index: 5; font: 500 11px var(--mono); color: var(--ink);
+  background: var(--sheet-solid); border: 1px solid var(--hair); padding: 5px 10px; border-radius: 2px; opacity: 0; transition: opacity .3s; pointer-events: none; }
+.toast.show { opacity: 1; }
+.loading { position: fixed; inset: 0; display: grid; place-items: center; z-index: 6; font: 500 12px var(--mono); color: var(--ink-2); pointer-events: none; transition: opacity .5s; }
+.loading.done { opacity: 0; }
+
+/* stacked layout below the wide-desktop breakpoint */
+@media (max-width: 1180px), (max-height: 700px) {
+  .strip { left: auto; right: auto; }
+  body { overflow: auto; height: auto; }
+  .frame { display: none; }
+  #stage { position: relative; height: 66vh; min-height: 380px; }
+  #labels { position: absolute; top: 0; left: 0; right: 0; height: 66vh; min-height: 380px; }
+  .legend { position: absolute; top: 12px; flex-wrap: wrap; justify-content: center; gap: 12px; width: max-content; max-width: calc(100% - 32px); }
+  .strip { position: static; transform: none; padding: 10px 16px 0; }
+  .chips { flex-wrap: wrap; justify-content: center; }
+  .dock { position: static; height: auto; margin: 10px 16px 0; grid-template-columns: 1fr; grid-template-rows: auto; }
+  .dock { grid-template-columns: minmax(0, 1fr); }
+  .sliders { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .field { grid-template-columns: 84px minmax(0, 1fr) auto; gap: 8px; }
+  .field output { min-width: 62px; }
+  .seg .btn { padding: 0 8px; }
+  .modes { gap: 10px; }
+  .modes .grp { flex-wrap: wrap; }
+  .hint { display: none; }
+  .col { position: static; width: auto !important; padding: 0 16px; overflow: visible; margin-top: 10px; }
+  .col.left .title { order: -1; }
+  .col.right { padding-bottom: 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  .col.left { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  .col.left .title { grid-column: 1 / -1; }
+  body.no-charts .col.right { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="frame" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+<div class="loading" id="loading">Machining 28 cylinders…</div>
+<main id="stage" aria-label="3D model of the R-4360 engine. Drag to orbit, scroll to zoom, click a cylinder to track it."></main>
+<div id="labels" aria-hidden="true"><svg></svg></div>
+<div class="toast" id="toast" role="status"></div>
+
+<div class="legend" aria-label="Charge colour key">
+  <span><i style="background:var(--blue)"></i>Intake</span>
+  <span><i style="background:var(--charcoal)"></i>Compression</span>
+  <span><i style="background:var(--orange)"></i>Power</span>
+  <span><i style="background:var(--gray)"></i>Exhaust</span>
+</div>
+
+<aside class="col left">
+  <header class="title">
+    <h1>R-4360 Wasp Major</h1>
+    <p class="spec">Pratt &amp; Whitney · 28 cyl in 4 rows of 7<br>4,363 in³ (71.5 L) · 5.75 × 6.00 in</p>
+    <div class="rpm"><output id="rpmBig">1200</output><small>CRANK RPM</small></div>
+    <div class="rpmbar"><i id="rpmBar"></i></div>
+    <p class="cycle" id="cycleLine">Crank 000° / 720°</p>
+  </header>
+  <section class="panel">
+    <div class="ph"><h2>Master-rod mechanism</h2><span class="meta" id="rodMeta">Row A</span></div>
+    <canvas class="chart" id="cRod" height="176"></canvas>
+    <p class="note">d = K·u + √(l² − |K|² + (K·u)²)</p>
+  </section>
+  <section class="panel">
+    <div class="ph"><h2>Planetary reduction</h2><span class="meta">prop 0.375×</span></div>
+    <canvas class="chart" id="cGear" height="128"></canvas>
+    <p class="note">carrier / sun = 27 / (27 + 45) = 0.375</p>
+  </section>
+  <section class="panel">
+    <div class="ph"><h2>Power curve</h2><span class="meta">variants 3,000–4,300 hp</span></div>
+    <canvas class="chart" id="cPower" height="88"></canvas>
+    <p class="note"><em>Schematic curve, not test data</em></p>
+  </section>
+</aside>
+
+<aside class="col right">
+  <section class="panel" aria-live="polite">
+    <div class="ph"><h2>Tracked cylinder</h2><span class="meta" id="cylMeta">ψ 0°</span></div>
+    <div class="cylname"><strong id="cylName">A1</strong><em id="cylStroke">Power</em></div>
+    <div class="strokebar" id="strokeBar"><div><i style="background:var(--orange)"></i></div><div><i style="background:var(--gray)"></i></div><div><i style="background:var(--blue)"></i></div><div><i style="background:var(--charcoal)"></i></div></div>
+    <div class="strokelbl" id="strokeLbl"><span>Power</span><span>Exhaust</span><span>Intake</span><span>Compr.</span></div>
+    <div class="readouts">
+      <div><b id="roPiston">0%</b><span>Piston</span></div>
+      <div><b id="roIn">0.00</b><span>Intake lift</span></div>
+      <div><b id="roEx">0.00</b><span>Exhaust lift</span></div>
+      <div class="illus"><b id="roP">0.0</b><span>Bar (illus.)</span></div>
+    </div>
+    <div class="row-btns">
+      <button class="btn" id="bIsolate2" aria-pressed="false">Isolate</button>
+      <button class="btn" id="bClose">Close-up</button>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="ph"><h2>Firing order</h2><span class="meta" id="fireMeta">A1 firing</span></div>
+    <canvas class="chart" id="cFire" height="176"></canvas>
+    <p class="note">720° on one turn · rings A→D outer→inner</p>
+  </section>
+  <section class="panel">
+    <div class="ph"><h2>Relative speeds</h2><span class="meta">vs crank</span></div>
+    <div class="speeds" id="speeds"></div>
+  </section>
+  <section class="panel">
+    <div class="ph"><h2>Valve timing</h2><span class="meta" id="vtMeta">drag to scrub</span></div>
+    <canvas class="chart" id="cValve" height="128" style="cursor:ew-resize;touch-action:none"></canvas>
+    <p class="note"><span style="color:var(--ink)">— piston</span> · <span style="color:var(--blue)">— intake</span> · <span style="color:var(--red)">— exhaust</span> · <span style="color:var(--orange)">┄ pressure (illus.)</span></p>
+  </section>
+</aside>
+
+<div class="strip">
+  <div class="cap">Firing order · click to track</div>
+  <div class="chips" id="chips"></div>
+</div>
+
+<div class="dock" role="toolbar" aria-label="Engine controls">
+  <div class="transport">
+    <button class="btn primary" id="bRun"><svg viewBox="0 0 12 12" aria-hidden="true"><path id="runIcon" d="M3 2h2v8H3zM7 2h2v8H7z" fill="currentColor"/></svg><span id="runTxt">Pause</span></button>
+    <button class="btn" id="bBack" aria-label="Step back 15 degrees">−15°</button>
+    <button class="btn" id="bFwd" aria-label="Step forward 15 degrees">+15°</button>
+  </div>
+  <div class="sliders">
+    <div class="field"><label for="sRpm">Engine speed</label><input type="range" id="sRpm" min="200" max="3000" step="50" value="1200"><output id="oRpm">1200 rpm</output></div>
+    <div class="field"><label>Playback</label><div class="seg" id="segPlay"></div></div>
+    <div class="field"><label for="sScrub">Cycle</label><input type="range" id="sScrub" min="0" max="719" step="1" value="0"><output id="oScrub">0°</output></div>
+  </div>
+  <div class="modes">
+    <div class="grp"><span>View</span><div class="seg" id="segView">
+      <button class="btn on" data-v="hero">Hero</button><button class="btn" data-v="front">Front</button><button class="btn" data-v="side">Side</button><button class="btn" data-v="rod">Rod detail</button></div></div>
+    <div class="grp"><span>Shell</span><div class="seg" id="segShell">
+      <button class="btn on" data-m="solid">Solid</button><button class="btn" data-m="glass">Transparent</button><button class="btn" data-m="section">Half-section</button></div></div>
+    <div class="grp tog"><span>Show</span>
+      <button class="btn" data-t="labels" aria-pressed="true">Labels</button>
+      <button class="btn" data-t="charge" aria-pressed="true">Charge</button>
+      <button class="btn" data-t="arrows" aria-pressed="false">Airflow</button>
+      <button class="btn" data-t="isolate" aria-pressed="false">Isolate</button>
+      <button class="btn" data-t="charts" aria-pressed="true">Charts</button>
+    </div>
+    <span class="hint">space run · ←/→ 15° · 1–4 views</span>
+  </div>
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>
